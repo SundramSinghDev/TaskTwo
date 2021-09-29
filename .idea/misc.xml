@@ -6,8 +6,11 @@
         <entry key="app/src/main/res/drawable/badge.xml" value="0.20555555555555555" />
         <entry key="app/src/main/res/drawable/circular_view.xml" value="0.20555555555555555" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.15833333333333333" />
+        <entry key="app/src/main/res/layout/filter_bottom_sheet.xml" value="0.21510416666666668" />
+        <entry key="app/src/main/res/layout/loader_view.xml" value="0.21510416666666668" />
         <entry key="app/src/main/res/layout/single_user_item.xml" value="0.25" />
         <entry key="app/src/main/res/layout/single_user_item_view.xml" value="0.1685185185185185" />
+        <entry key="app/src/main/res/menu/option_menu.xml" value="0.21510416666666668" />
       </map>
     </option>
   </component>

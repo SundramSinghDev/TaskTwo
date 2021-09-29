@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">TaskTwo</string>
+    <string name="search">Search</string>
+    <string name="filter">Filter</string>
+    <string name="select_gender_to_filter_the_data">Select Gender to Filter the Data..</string>
+    <string name="male">Male</string>
+    <string name="female">Female</string>
+    <string name="refresh">Refresh</string>
 </resources>

@@ -11,6 +11,10 @@ public class Response {
     @Expose
     private Integer code;
 
+    @SerializedName("meta")
+    @Expose
+    private Meta meta;
+
     @SerializedName("data")
     @Expose
     private List<UserDataModel> data = null;
@@ -29,5 +33,13 @@ public class Response {
 
     public void setData(List<UserDataModel> data) {
         this.data = data;
+    }
+
+    public Meta getMeta() {
+        return meta;
+    }
+
+    public void setMeta(Meta meta) {
+        this.meta = meta;
     }
 }

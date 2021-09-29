@@ -3,17 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-
         <variable
             name="userData"
             type="com.sundram.tasktwo.model.UserDataModel" />
+        <variable
+            name="setAvatar"
+            type="java.lang.String" />
     </data>
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/_5sdp"
-        app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="@dimen/_5sdp"
         app:cardElevation="@dimen/_8sdp"
         app:cardPreventCornerOverlap="false"
@@ -30,6 +31,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/circular_view"
                 android:gravity="center"
+                android:text="@{setAvatar.toUpperCase()}"
                 android:textColor="@color/black"
                 android:textSize="@dimen/_18sdp"
                 app:layout_constraintStart_toStartOf="parent"
