@@ -25,11 +25,17 @@ public class UserViewModel extends ViewModel {
     public MutableLiveData<String> errorData = new MutableLiveData<>();
     UserApiCall apiCall;
     UserRepository repository;
+    private Context context;
+
 
     @Inject
     public UserViewModel(UserApiCall apiCall, UserRepository repository) {
         this.apiCall = apiCall;
         this.repository = repository;
+    }
+
+    public void init(Context context){
+        apiCall.init(context);
     }
 
     public MutableLiveData<Response> getUserData(Context context, Integer params) {

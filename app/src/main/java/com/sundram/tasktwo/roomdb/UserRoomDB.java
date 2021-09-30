@@ -7,7 +7,7 @@ import androidx.room.TypeConverters;
 import com.sundram.tasktwo.model.UserRoomDBModel;
 import com.sundram.tasktwo.utils.ConverterFactory;
 
-@Database(entities = {UserRoomDBModel.class}, version = 1, exportSchema = false)
+@Database(entities = {UserRoomDBModel.class}, version = 3, exportSchema = false)
 @TypeConverters({ConverterFactory.class})
 public abstract class UserRoomDB extends RoomDatabase {
 

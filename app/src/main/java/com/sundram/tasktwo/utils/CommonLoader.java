@@ -9,18 +9,29 @@ import android.view.WindowManager;
 
 import com.sundram.tasktwo.R;
 
+import javax.inject.Inject;
+
 public class CommonLoader {
 
     Dialog dialog;
     Context activity;
 
-    public CommonLoader(Context activity) {
-        this.activity = activity;
-        dialog = new Dialog(activity);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        dialog.setContentView(R.layout.loader_view);
+    @Inject
+    public CommonLoader() {
+    }
+
+    public void createDialog(Context activity) {
+        try {
+            this.activity = activity;
+            dialog = new Dialog(activity);
+            dialog.setCancelable(true);
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            dialog.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.setContentView(R.layout.loader_view);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void showDialog() {

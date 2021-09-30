@@ -12,24 +12,38 @@
         android:fitsSystemWindows="true"
         app:behavior_hideable="false"
         android:orientation="vertical"
-        android:gravity="center"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <TextView
             android:id="@+id/heading_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
             android:text="@string/select_gender_to_filter_the_data"
             android:textStyle="normal"
             android:includeFontPadding="false"
             android:layout_marginTop="@dimen/_5sdp"
             android:textFontWeight="400"
-            android:textAppearance="@style/TextAppearance.AppCompat.Title"
+            android:textSize="@dimen/_14ssp"
+            android:gravity="center"
+
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:targetApi="p" />
+
+        <TextView
+            android:id="@+id/clear_filter_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:gravity="end"
+            android:padding="@dimen/_5sdp"
+            android:text="@string/clear_filter"
+            tools:ignore="TouchTargetSizeCheck"
+            tools:targetApi="m" />
 
         <RadioGroup
             android:id="@+id/radio_group_gender"

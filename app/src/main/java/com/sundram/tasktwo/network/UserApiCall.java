@@ -4,6 +4,8 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
+
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.sundram.tasktwo.apiservices.UserApiService;
@@ -15,9 +17,6 @@ import com.sundram.tasktwo.utils.ConstantUtils;
 
 import org.json.JSONObject;
 
-import java.sql.Connection;
-import java.util.Map;
-
 import javax.inject.Inject;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
@@ -28,15 +27,27 @@ public class UserApiCall {
 
     UserRepository userRepository;
     private static final String TAG = "UserApiCall";
+    Context context;
+
+    @Inject
     CommonLoader commonLoader;
+
+    @Inject
+    ConnectionUtils connectionUtils;
+
     @Inject
     public UserApiCall(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    public void init(Context context) {
+        this.context = context;
+        commonLoader.createDialog(context);
+        connectionUtils.init(context);
+    }
+
     public void getUserData(ApiResponse apiResponse, Context context, Integer params) {
-        commonLoader = new CommonLoader(context);
-        if (ConnectionUtils.checkConnectivity(context)) {
+        if (connectionUtils.checkConnectivity()) {
             commonLoader.showDialog();
             userRepository.getUserData(params)
                     .subscribeOn(Schedulers.io())

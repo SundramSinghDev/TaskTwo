@@ -1,7 +1,6 @@
 package com.sundram.tasktwo.adapters;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -13,7 +12,6 @@ import com.sundram.tasktwo.R;
 import com.sundram.tasktwo.databinding.SingleUserItemViewBinding;
 import com.sundram.tasktwo.model.UserDataModel;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -21,14 +19,13 @@ import javax.inject.Inject;
 
 public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
 
-    private List<UserDataModel> userDataModelList;
+    public List<UserDataModel> userDataModelList;
     private Context context;
     private SingleUserItemViewBinding binding;
     private static final String TAG = "ADAPTER";
 
     @Inject
-    public UserAdapter() {
-    }
+    public UserAdapter() { }
 
     public void setData(List<UserDataModel> userDataModelList, Context context) {
         this.userDataModelList = userDataModelList;
