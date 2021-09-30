@@ -5,7 +5,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import android.database.sqlite.SQLiteException;
 import android.os.Bundle;
@@ -53,8 +55,10 @@ public class MainActivity extends AppCompatActivity {
     private Integer PAGE_NO = 1;
     private boolean isScroll = false;
     private boolean isFilterCalled = false;
+
     @Inject
     UserAdapter userAdapter;
+
     LinearLayoutManager linearLayoutManager;
     int scroll_pos = 0;
     int isMaleSelected = 0;
@@ -69,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
     FilterBottomSheetBinding filterBottomSheetBinding;
     Response responseModel;
     Iterator iterator;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,6 +83,17 @@ public class MainActivity extends AppCompatActivity {
             //this is for sending context to view model
             viewModel.init(MainActivity.this);
             connectionUtils.init(MainActivity.this);
+
+            binding.userRv.setHasFixedSize(true);
+            linearLayoutManager = new LinearLayoutManager(MainActivity.this);
+
+            binding.userRv.setLayoutManager(linearLayoutManager);
+
+            RecyclerView.ItemAnimator animator= binding.userRv.getItemAnimator();
+            if (animator instanceof SimpleItemAnimator){
+                ((SimpleItemAnimator)animator).setSupportsChangeAnimations(false);
+            }
+
             binding.swipeRefresh.setOnRefreshListener(() -> {
                 PAGE_NO = 1;
                 isScroll = false;
@@ -99,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
             if (connectionUtils.checkConnectivity()) {
                 Log.i(TAG, "getUserResponseData: NET");
                 viewModel.getUserData(this, page_no).observe(this, this::handleResponse);
-               return;
+                return;
             } else {
                 Log.i(TAG, "getUserResponseLOCALData: else NO NET");
                 viewModel.getUserDataFromRoomDB(1).observe(this, this::handleLocalResponse);
@@ -140,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "handleResponse: ");
             data = new ArrayList<>(userDataModelList);
             setRecyclerViewAndAdapter(userDataModelList);
-        }else{
+        } else {
             Log.i(TAG, "handleResponse: NO DATA");
         }
         return;
@@ -261,7 +275,7 @@ public class MainActivity extends AppCompatActivity {
         binding.swipeRefresh.setEnabled(false);
         dataModelList.clear();
         if (keyword == null || keyword.length() == 0) {
-            dataModelList.addAll(data);
+            setRecyclerViewAndAdapter(data);
             return;
         }
         for (UserDataModel dataModel : data) {
@@ -270,14 +284,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         setRecyclerViewAndAdapter(dataModelList);
-
     }
-    
+
     private void setRecyclerViewAndAdapter(List<UserDataModel> userDataModelLists) {
         try {
-            binding.userRv.setHasFixedSize(true);
-            linearLayoutManager = new LinearLayoutManager(MainActivity.this);
-            binding.userRv.setLayoutManager(linearLayoutManager);
+
             if (isScroll) {
                 Log.i(TAG, "setRecyclerViewAndAdapter: IN SCROLL");
                 iterator = userDataModelLists.iterator();
@@ -285,12 +296,13 @@ public class MainActivity extends AppCompatActivity {
                     userAdapter.userDataModelList.add((UserDataModel) iterator.next());
                 }
                 userAdapter.setData(userAdapter.userDataModelList, MainActivity.this);
-
-                binding.userRv.scrollToPosition(scroll_pos + 1);
+//
+                binding.userRv.scrollToPosition(scroll_pos - 1);
             } else {
                 Log.i(TAG, "setRecyclerViewAndAdapter: OUT SCROLL");
                 userAdapter.setData(userDataModelLists, MainActivity.this);
             }
+            userAdapter.setHasStableIds(true);
             binding.userRv.setAdapter(userAdapter);
             userAdapter.notifyDataSetChanged();
             if (!isDataFetchFromLocal) {

@@ -30,7 +30,6 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
     public void setData(List<UserDataModel> userDataModelList, Context context) {
         this.userDataModelList = userDataModelList;
         this.context = context;
-
     }
 
     @NonNull
@@ -51,9 +50,10 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
         }
     }
 
+
     @Override
     public long getItemId(int position) {
-        return super.getItemId(position);
+        return userDataModelList.get(position).getId();
     }
 
     @Override
