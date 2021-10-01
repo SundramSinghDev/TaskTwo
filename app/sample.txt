@@ -5,7 +5,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import android.database.sqlite.SQLiteException;
 import android.os.Bundle;
@@ -30,6 +32,7 @@ import com.sundram.tasktwo.model.UserRoomDBModel;
 import com.sundram.tasktwo.utils.ConnectionUtils;
 import com.sundram.tasktwo.utils.ConstantUtils;
 import com.sundram.tasktwo.utils.SharedPrefUtils;
+import com.sundram.tasktwo.utils.WrapContentLinearLayoutManager;
 import com.sundram.tasktwo.viewmodel.UserViewModel;
 
 import java.util.ArrayList;
@@ -53,9 +56,12 @@ public class MainActivity extends AppCompatActivity {
     private Integer PAGE_NO = 1;
     private boolean isScroll = false;
     private boolean isFilterCalled = false;
+
     @Inject
     UserAdapter userAdapter;
-    LinearLayoutManager linearLayoutManager;
+
+    //    LinearLayoutManager linearLayoutManager;
+    WrapContentLinearLayoutManager linearLayoutManager;
     int scroll_pos = 0;
     int isMaleSelected = 0;
     int isFeMaleSelected = 0;
@@ -63,10 +69,13 @@ public class MainActivity extends AppCompatActivity {
     boolean isDataFetchFromLocal = false;
     @Inject
     SharedPrefUtils sharedPrefUtils;
+    @Inject
+    ConnectionUtils connectionUtils;
     BottomSheetDialog bottomSheetDialog;
     FilterBottomSheetBinding filterBottomSheetBinding;
     Response responseModel;
     Iterator iterator;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,14 +85,34 @@ public class MainActivity extends AppCompatActivity {
             viewModel = new ViewModelProvider(this).get(UserViewModel.class);
             //this is for sending context to view model
             viewModel.init(MainActivity.this);
+            connectionUtils.init(MainActivity.this);
+            bottomSheetDialog = new BottomSheetDialog(this);
+            filterBottomSheetBinding = DataBindingUtil.inflate(LayoutInflater.from(MainActivity.this), R.layout.filter_bottom_sheet, null, false);
+
+            binding.userRv.setHasFixedSize(true);
+            linearLayoutManager = new WrapContentLinearLayoutManager(MainActivity.this, LinearLayoutManager.VERTICAL, false);
+//            linearLayoutManager = new LinearLayoutManager(MainActivity.this);
+
+            RecyclerView.ItemAnimator animator = binding.userRv.getItemAnimator();
+            if (animator instanceof SimpleItemAnimator) {
+                ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
+            }
+            binding.userRv.setItemAnimator(null);
+            //TODO
+            //NEED TO RESET THE CATEGORY FILTER ON SWIPE REFRESH AND ON REFRESH
+
             binding.swipeRefresh.setOnRefreshListener(() -> {
-                PAGE_NO=0;
-                getUserResponseData(1);
+                PAGE_NO = 1;
+                isScroll = false;
                 isFilterCalled = false;
-                isDataFetchFromLocal=false;
+                clearGenderFilter();
                 binding.swipeRefresh.setRefreshing(false);
+                getUserResponseData(1);
             });
+
             getUserResponseData(1);
+            userAdapter.setHasStableIds(true);
+            binding.userRv.setAdapter(userAdapter);
             applyPaginationOnRecyclerView();
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,11 +121,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void getUserResponseData(Integer page_no) {
         try {
-            Log.i(TAG, "getUserResponseData: "+page_no);
-            if (ConnectionUtils.checkConnectivity(this)) {
+            if (connectionUtils.checkConnectivity()) {
+                Log.i(TAG, "getUserResponseData: NET");
+                isDataFetchFromLocal = false;
                 viewModel.getUserData(this, page_no).observe(this, this::handleResponse);
+                return;
             } else {
+                isDataFetchFromLocal = true;
+                Log.i(TAG, "getUserResponseLOCALData: else NO NET");
                 viewModel.getUserDataFromRoomDB(1).observe(this, this::handleLocalResponse);
+
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,10 +140,13 @@ public class MainActivity extends AppCompatActivity {
     private void handleLocalResponse(UserRoomDBModel userRoomDBModel) {
         try {
             TOTAL_PAGE_NO = userRoomDBModel.getResponse().getMeta().getPagination().getPages();
-            if (userRoomDBModel.getResponse().getData().size() > 0) {
-                isDataFetchFromLocal = true;
+            binding.swipeRefresh.setEnabled(false);
+            if (userRoomDBModel.getResponse().getData().size() > 0 && userRoomDBModel.getResponse().getData() != null) {
+                Log.i(TAG, "handleLocalResponse: ");
                 data = new ArrayList<>(userRoomDBModel.getResponse().getData());
                 setRecyclerViewAndAdapter(userRoomDBModel.getResponse().getData());
+            } else {
+                Log.i(TAG, "handleLocalResponse: EMPTY OR NULL");
             }
             return;
         } catch (Exception e) {
@@ -118,16 +155,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleResponse(Response response) {
-        isDataFetchFromLocal = false;
         TOTAL_PAGE_NO = response.getMeta().getPagination().getPages();
-        PAGE_NO=response.getMeta().getPagination().getPage();
+        PAGE_NO = response.getMeta().getPagination().getPage();
         PAGE_NO++;
         responseModel = response;
+        binding.swipeRefresh.setEnabled(true);
         List<UserDataModel> userDataModelList = new ArrayList<>(response.getData());
-        if (userDataModelList.size() > 0) {
+        if (userDataModelList.size() > 0 && userDataModelList != null) {
+            Log.i(TAG, "handleResponse: ");
             data = new ArrayList<>(userDataModelList);
             setRecyclerViewAndAdapter(userDataModelList);
+        } else {
+            Log.i(TAG, "handleResponse: NO DATA");
         }
+        return;
     }
 
     @Override
@@ -148,19 +189,25 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMenuItemActionCollapse(MenuItem menuItem) {
                 isFilterCalled = false;
-//                getUserResponseData(PAGE_NO);
+                clearGenderFilter();
+                PAGE_NO = 1;
+                binding.swipeRefresh.setEnabled(true);
+                getUserResponseData(1);
                 return true;
             }
         });
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String s) {
+                filter(s);
                 return false;
             }
 
             @Override
             public boolean onQueryTextChange(String s) {
-                filter(s);
+                if (s.length() == 0) {
+                    filter("");
+                }
                 return false;
             }
         });
@@ -179,17 +226,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void OnRefresh() {
+        PAGE_NO = 1;
+        isScroll = false;
         isFilterCalled = false;
-        isDataFetchFromLocal=false;
-        PAGE_NO=0;
-        binding.swipeRefresh.setEnabled(true);
+        clearGenderFilter();
+        binding.swipeRefresh.setRefreshing(false);
         getUserResponseData(1);
     }
 
     private void showBottomSheetDialog() {
         try {
-            bottomSheetDialog = new BottomSheetDialog(this);
-            filterBottomSheetBinding = DataBindingUtil.inflate(LayoutInflater.from(MainActivity.this), R.layout.filter_bottom_sheet, null, false);
             bottomSheetDialog.setContentView(filterBottomSheetBinding.getRoot());
             bottomSheetDialog.show();
             if (isFeMaleSelected == 1) {
@@ -203,12 +249,10 @@ public class MainActivity extends AppCompatActivity {
             filterBottomSheetBinding.clearFilterTv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    filterBottomSheetBinding.radioFemaleBtn.setChecked(false);
-                    filterBottomSheetBinding.radioMaleBtn.setChecked(false);
-                    isFeMaleSelected = 0;
-                    isMaleSelected = 0;
-                    isFilterCalled = false;
-                    getUserResponseData(PAGE_NO);
+                    clearGenderFilter();
+                    PAGE_NO = 1;
+                    getUserResponseData(1);
+
                 }
             });
             filterBottomSheetBinding.radioGroupGender.setOnCheckedChangeListener((radioGroup, i) -> {
@@ -216,10 +260,12 @@ public class MainActivity extends AppCompatActivity {
                     filter(getResources().getString(R.string.female));
                     isFeMaleSelected = 1;
                     isMaleSelected = 0;
+                    isFilterCalled = true;
                     sharedPrefUtils.saveSelectedGender(getResources().getString(R.string.female));
                 } else {
                     isMaleSelected = 1;
                     isFeMaleSelected = 0;
+                    isFilterCalled = true;
                     filterBottomSheetBinding.radioMaleBtn.setChecked(true);
                     filter(getResources().getString(R.string.male));
                     sharedPrefUtils.saveSelectedGender(getResources().getString(R.string.male));
@@ -234,47 +280,47 @@ public class MainActivity extends AppCompatActivity {
     private void filter(String keyword) {
         isFilterCalled = true;
         binding.swipeRefresh.setEnabled(false);
-        if (ConnectionUtils.checkConnectivity(MainActivity.this)) {
-            dataModelList.clear();
-            if (keyword == null || keyword.length() == 0) {
-                dataModelList.addAll(data);
-                return;
-            }
-            for (UserDataModel dataModel : data) {
-                if (dataModel.getName().toLowerCase().contains(keyword.toLowerCase()) || dataModel.getGender().equals(keyword.toLowerCase()) == true) {
-                    dataModelList.add(dataModel);
-                }
-            }
-            setRecyclerViewAndAdapter(dataModelList);
-        } else {
-            Toast.makeText(MainActivity.this, ConstantUtils.CONNECTION_ERROR, Toast.LENGTH_SHORT).show();
+        dataModelList.clear();
+        if (keyword == null || keyword.length() == 0) {
+            setRecyclerViewAndAdapter(data);
+            return;
         }
-
+        for (UserDataModel dataModel : data) {
+            if (dataModel.getName().toLowerCase().contains(keyword.toLowerCase()) || dataModel.getGender().equals(keyword.toLowerCase()) == true) {
+                dataModelList.add(dataModel);
+            }
+        }
+        setRecyclerViewAndAdapter(dataModelList);
     }
 
-    private void setRecyclerViewAndAdapter(List<UserDataModel> userDataModelList) {
-       try {
-           Log.i(TAG, "setRecyclerViewAndAdapter: ");
-           binding.userRv.setHasFixedSize(true);
-           linearLayoutManager = new LinearLayoutManager(MainActivity.this);
-           binding.userRv.setLayoutManager(linearLayoutManager);
-           if (isScroll) {
-               iterator = userDataModelList.iterator();
-               while (iterator.hasNext()){
-                   userAdapter.userDataModelList.add((UserDataModel) iterator.next());
-               }
-               userAdapter.setData(userAdapter.userDataModelList, MainActivity.this);
-
-               binding.userRv.scrollToPosition(scroll_pos + 1);
-           } else {
-               userAdapter.setData(userDataModelList, MainActivity.this);
-           }
-           insertUserDataIntoRoomDB();
-           binding.userRv.setAdapter(userAdapter);
-           userAdapter.notifyDataSetChanged();
-       }catch (Exception e){
-           e.printStackTrace();
-       }
+    private void setRecyclerViewAndAdapter(List<UserDataModel> userDataModelLists) {
+        try {
+            binding.userRv.setLayoutManager(linearLayoutManager);
+            if (isScroll) {
+                Log.i(TAG, "setRecyclerViewAndAdapter: IN SCROLL");
+                iterator = userDataModelLists.iterator();
+                while (iterator.hasNext()) {
+                    userAdapter.userDataModelList.add((UserDataModel) iterator.next());
+                }
+                userAdapter.setData(userAdapter.userDataModelList, MainActivity.this);
+                binding.userRv.scrollToPosition(scroll_pos - 1);
+            } else {
+                Log.i(TAG, "setRecyclerViewAndAdapter: OUT SCROLL");
+                userAdapter.setData(userDataModelLists, MainActivity.this);
+            }
+            binding.userRv.getRecycledViewPool().clear();
+            userAdapter.notifyDataSetChanged();
+            Log.i(TAG, "setRecyclerViewAndAdapter: isFilterCalled " + isFilterCalled + " isDataFetchFromLocal " + isDataFetchFromLocal);
+            if (!isFilterCalled) {
+                if (!isDataFetchFromLocal) {
+                    Log.i(TAG, "isDataFetchFromLocal: " + isDataFetchFromLocal);
+                    insertUserDataIntoRoomDB();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return;
     }
 
     private void applyPaginationOnRecyclerView() {
@@ -282,15 +328,20 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
                 if (!recyclerView.canScrollVertically(1)) {
-                    if (isFilterCalled == false || isDataFetchFromLocal==false) {
-                        if (PAGE_NO <= TOTAL_PAGE_NO) {
-                            isScroll = true;
-                            Log.i(TAG, "onScrollStateChanged: ");
-                            scroll_pos = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
-                            getUserResponseData(PAGE_NO);
-                        } else {
-                            isScroll = false;
-                            Toast.makeText(MainActivity.this, "No More Data Available..", Toast.LENGTH_SHORT).show();
+                    Log.i(TAG, "onScrollStateChanged: isFilterCalled " + isFilterCalled + "\n " + "isDataFetchFromLocal " + isDataFetchFromLocal);
+                    if (!isDataFetchFromLocal) {
+                        if (!isFilterCalled) {
+                            if (PAGE_NO <= TOTAL_PAGE_NO) {
+                                isScroll = true;
+                                Log.i(TAG, "onScrollStateChanged: OK");
+                                scroll_pos = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
+                                getUserResponseData(PAGE_NO);
+                                return;
+                            } else {
+                                isScroll = false;
+                                Toast.makeText(MainActivity.this, "No More Data Available..", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                         }
                     }
                 } else {
@@ -312,9 +363,19 @@ public class MainActivity extends AppCompatActivity {
         response.setData(userAdapter.userDataModelList);
         response.setCode(responseModel.getCode());
         response.setMeta(responseModel.getMeta());
-
-        Toast.makeText(MainActivity.this, "DATA INSERTED", Toast.LENGTH_SHORT).show();
+        Log.i(TAG, "insertUserDataIntoRoomDB: DATA INSERTED INTO ROOM DB");
         //insert data into room db
         viewModel.insertUserDataIntoRoomDB(new UserRoomDBModel(1, response));
+    }
+
+    private void clearGenderFilter() {
+        filterBottomSheetBinding.radioFemaleBtn.setChecked(false);
+        filterBottomSheetBinding.radioMaleBtn.setChecked(false);
+
+        isFeMaleSelected = 0;
+        isMaleSelected = 0;
+
+        isFilterCalled = false;
+        binding.swipeRefresh.setEnabled(true);
     }
 }

@@ -4,11 +4,8 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.core.content.ContextCompat;
-
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.sundram.tasktwo.apiservices.UserApiService;
 import com.sundram.tasktwo.model.Response;
 import com.sundram.tasktwo.repository.UserRepository;
 import com.sundram.tasktwo.utils.CommonLoader;
@@ -51,16 +48,12 @@ public class UserApiCall {
             commonLoader.showDialog();
             userRepository.getUserData(params)
                     .subscribeOn(Schedulers.io())
-                    .map(new Function<JsonElement, Object>() {
-                        @Override
-                        public Object apply(JsonElement jsonElement) throws Throwable {
-                            JSONObject jsonObject = new JSONObject(jsonElement.toString());
-                            Response response = null;
-                            Log.i(TAG, "REPONSE JOBJ: " + jsonObject.toString());
-                            response = new GsonBuilder().create().fromJson(jsonObject.toString(), Response.class);
+                    .map((Function<JsonElement, Object>) jsonElement -> {
+                        JSONObject jsonObject = new JSONObject(jsonElement.toString());
+                        Response response = null;
+                        response = new GsonBuilder().create().fromJson(jsonObject.toString(), Response.class);
 
-                            return response;
-                        }
+                        return response;
                     })
                     .subscribeOn(AndroidSchedulers.mainThread())
                     .subscribe(result -> {
